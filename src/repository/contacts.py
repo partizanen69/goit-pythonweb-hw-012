@@ -2,10 +2,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_, extract, func
 from sqlalchemy.future import select
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from src.models.contact import Contact
 from src.schemas.contact import ContactCreate, ContactUpdate
+from src.exceptions.contact import ContactAlreadyExists
 
 
 class ContactsRepository:
@@ -13,6 +14,14 @@ class ContactsRepository:
         self.db = db
 
     async def create_contact(self, contact: ContactCreate) -> Contact:
+        existing_contact = await self.db.execute(
+            select(Contact).where(Contact.email == contact.email)
+        )
+        if existing_contact.scalar_one_or_none():
+            raise ContactAlreadyExists(
+                f"Contact with email {contact.email} already exists"
+            )
+
         db_contact = Contact(**contact.model_dump())
         self.db.add(db_contact)
         await self.db.commit()

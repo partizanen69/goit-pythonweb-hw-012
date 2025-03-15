@@ -1,8 +1,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
+from fastapi import HTTPException, status
 
 from src.repository.contacts import ContactsRepository
 from src.schemas.contact import ContactCreate, ContactResponse, ContactUpdate
+from src.exceptions.contact import ContactAlreadyExists
 
 
 class ContactsService:
@@ -10,7 +12,10 @@ class ContactsService:
         self.repository = ContactsRepository(db)
 
     async def create_contact(self, contact: ContactCreate) -> ContactResponse:
-        return await self.repository.create_contact(contact)
+        try:
+            return await self.repository.create_contact(contact)
+        except ContactAlreadyExists as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     async def get_contacts(
         self,
