@@ -13,4 +13,8 @@ alembic init migrations
 
 alembic revision --autogenerate -m "Create initial tables"
 alembic upgrade head
+
+# run app
+docker compose up
+python main.py
 ```

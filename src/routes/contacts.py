@@ -12,7 +12,9 @@ logger = logging.getLogger("uvicorn.error")
 
 
 @router.post("/", response_model=ContactResponse, status_code=status.HTTP_201_CREATED)
-async def create_contact(contact: ContactCreate, db: AsyncSession = Depends(get_db)):
+async def create_contact(
+    contact: ContactCreate, db: AsyncSession = Depends(get_db)
+) -> ContactResponse:
     service = ContactsService(db)
     return await service.create_contact(contact)
 
@@ -25,19 +27,23 @@ async def get_contacts(
     last_name: Optional[str] = Query(None),
     email: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
-):
+) -> List[ContactResponse]:
     service = ContactsService(db)
     return await service.get_contacts(skip, limit, first_name, last_name, email)
 
 
 @router.get("/birthdays", response_model=List[ContactResponse])
-async def get_upcoming_birthdays(db: AsyncSession = Depends(get_db)):
+async def get_upcoming_birthdays(
+    db: AsyncSession = Depends(get_db),
+) -> List[ContactResponse]:
     service = ContactsService(db)
     return await service.get_upcoming_birthdays()
 
 
 @router.get("/{contact_id}", response_model=ContactResponse)
-async def get_contact(contact_id: int, db: AsyncSession = Depends(get_db)):
+async def get_contact(
+    contact_id: int, db: AsyncSession = Depends(get_db)
+) -> ContactResponse:
     service = ContactsService(db)
     contact = await service.get_contact(contact_id)
     if contact is None:
@@ -51,7 +57,7 @@ async def get_contact(contact_id: int, db: AsyncSession = Depends(get_db)):
 @router.put("/{contact_id}", response_model=ContactResponse)
 async def update_contact(
     contact_id: int, contact: ContactUpdate, db: AsyncSession = Depends(get_db)
-):
+) -> ContactResponse:
     service = ContactsService(db)
     existing_contact = await service.get_contact(contact_id)
     if existing_contact is None:
@@ -63,7 +69,7 @@ async def update_contact(
 
 
 @router.delete("/{contact_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_contact(contact_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_contact(contact_id: int, db: AsyncSession = Depends(get_db)) -> None:
     service = ContactsService(db)
     contact = await service.get_contact(contact_id)
     if contact is None:
