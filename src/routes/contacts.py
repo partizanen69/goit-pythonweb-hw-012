@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 import logging
-from datetime import date
 
 from src.database.db import get_db
 from src.services.contacts import ContactsService

@@ -67,55 +67,12 @@ class ContactsRepository:
         await self.db.commit()
 
     async def get_upcoming_birthdays(self) -> List[Contact]:
-        today = datetime.now().date()
-        next_week = today + timedelta(days=7)
-
-        # Handle year boundary case (December -> January)
-        if today.month == 12 and next_week.month == 1:
-            # Query for December birthdays
-            december_query = select(Contact).where(
-                and_(
-                    extract("month", Contact.birthday) == 12,
-                    extract("day", Contact.birthday) >= today.day,
-                )
+        query = select(Contact).where(
+            and_(
+                Contact.birthday >= func.current_date(),
+                Contact.birthday <= func.current_date() + timedelta(days=7),
             )
+        )
 
-            # Query for January birthdays
-            january_query = select(Contact).where(
-                and_(
-                    extract("month", Contact.birthday) == 1,
-                    extract("day", Contact.birthday) <= next_week.day,
-                )
-            )
-
-            december_result = await self.db.execute(december_query)
-            january_result = await self.db.execute(january_query)
-
-            return december_result.scalars().all() + january_result.scalars().all()
-        else:
-            # Standard case within the same month
-            if today.month == next_week.month:
-                query = select(Contact).where(
-                    and_(
-                        extract("month", Contact.birthday) == today.month,
-                        extract("day", Contact.birthday) >= today.day,
-                        extract("day", Contact.birthday) <= next_week.day,
-                    )
-                )
-            else:
-                # Case when dates span two different months
-                query = select(Contact).where(
-                    or_(
-                        and_(
-                            extract("month", Contact.birthday) == today.month,
-                            extract("day", Contact.birthday) >= today.day,
-                        ),
-                        and_(
-                            extract("month", Contact.birthday) == next_week.month,
-                            extract("day", Contact.birthday) <= next_week.day,
-                        ),
-                    )
-                )
-
-            result = await self.db.execute(query)
-            return result.scalars().all()
+        result = await self.db.execute(query)
+        return result.scalars().all()
