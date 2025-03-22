@@ -5,7 +5,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from slowapi.errors import RateLimitExceeded
 
-from src.routes import auth, contacts
+from src.routes import auth, contacts, users
 from src.database.db import get_db
 
 
@@ -33,6 +33,7 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 api_prefix = "/api"
 app.include_router(contacts.router, prefix=api_prefix)
 app.include_router(auth.router, prefix=api_prefix)
+app.include_router(users.router, prefix=api_prefix)
 
 
 @app.get("/")

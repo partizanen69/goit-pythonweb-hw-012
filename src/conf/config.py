@@ -20,5 +20,10 @@ class Settings(BaseSettings):
     MAIL_PORT: int = int(os.getenv("MAIL_PORT", "465"))
     MAIL_SERVER: str = os.getenv("MAIL_SERVER", "smtp.meta.ua")
 
+    # Cloudinary settings
+    CLOUDINARY_NAME: str = os.getenv("CLOUDINARY_NAME", "")
+    CLOUDINARY_API_KEY: str = os.getenv("CLOUDINARY_API_KEY", "")
+    CLOUDINARY_API_SECRET: str = os.getenv("CLOUDINARY_API_SECRET", "")
+
 
 settings = Settings()

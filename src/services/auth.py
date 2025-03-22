@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Optional
 from datetime import UTC, datetime, timedelta
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -13,6 +13,7 @@ from src.conf.config import settings
 from src.utils.auth import verify_password, get_password_hash
 from src.services.email import EmailService
 from src.repository.user_repository import UserRepository
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
