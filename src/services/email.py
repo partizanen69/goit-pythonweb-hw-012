@@ -1,4 +1,4 @@
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from src.conf.config import settings
 from pathlib import Path
 
@@ -27,7 +27,7 @@ class EmailService:
             recipients=[email],
             body=f"Hi {username}, please verify your email by clicking on this link: "
             f"http://localhost:8000/api/auth/verify/{token}",
-            subtype="html",
+            subtype=MessageType.html,
         )
 
         await self.fast_mail.send_message(message)

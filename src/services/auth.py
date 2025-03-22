@@ -1,5 +1,5 @@
-from typing import Optional
-from datetime import datetime, timedelta
+from typing import Dict, Optional
+from datetime import UTC, datetime, timedelta
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,7 +10,7 @@ from src.database.db import get_db
 from src.models.base import User
 from src.schemas.user import UserCreate
 from src.conf.config import settings
-from src.utils.auth import verify_password, get_password_hash, create_access_token
+from src.utils.auth import verify_password, get_password_hash
 from src.services.email import EmailService
 from src.repository.user_repository import UserRepository
 
@@ -32,20 +32,20 @@ class AuthService:
 
         # Create new user
         hashed_password = get_password_hash(user_data.password)
-        verification_token = str(uuid.uuid4())
+        email_verification_token = str(uuid.uuid4())
 
         new_user = await self.repository.create(
             {
                 "username": user_data.username,
                 "email": user_data.email,
                 "password": hashed_password,
-                "verification_token": verification_token,
+                "verification_token": email_verification_token,
             }
         )
 
         # Send verification email
         await self.email_service.send_verification_email(
-            new_user.email, new_user.username, verification_token
+            new_user.email, new_user.username, email_verification_token
         )
 
         return new_user
@@ -59,7 +59,7 @@ class AuthService:
         return user
 
     async def verify_email(self, token: str):
-        user = await self.repository.get_by_verification_token(token)
+        user = await self.repository.get_by_email_verification_token(token)
 
         if not user:
             raise HTTPException(
@@ -78,6 +78,23 @@ class AuthService:
 
         return {"message": "Email verified successfully"}
 
+    def create_access_token(
+        self, user_email: str, expires_delta: Optional[timedelta] = None
+    ) -> str:
+        to_encode: dict[str, str | float] = {"sub": user_email}
+
+        if expires_delta:
+            expire = datetime.now(UTC) + expires_delta
+        else:
+            expire = datetime.now(UTC) + timedelta(minutes=15)
+
+        to_encode.update({"exp": expire.timestamp()})
+
+        encoded_jwt = jwt.encode(
+            to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+        )
+        return encoded_jwt
+
     @staticmethod
     async def get_current_user(
         token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)
@@ -92,7 +109,7 @@ class AuthService:
             payload = jwt.decode(
                 token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
             )
-            email: str = payload.get("sub")
+            email: str | None = payload.get("sub")
             if email is None:
                 raise credentials_exception
         except JWTError:

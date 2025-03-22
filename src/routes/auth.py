@@ -12,10 +12,14 @@ from src.conf.config import settings
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
+)
 async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
     auth_service = AuthService(db)
     return await auth_service.register(user)
+
 
 @router.post("/login", response_model=TokenResponse)
 async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
@@ -27,13 +31,21 @@ async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    if not user.email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Email not verified",
+        )
+
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth_service.create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
+        user.email, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
 
 @router.get("/verify/{token}")
 async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
     auth_service = AuthService(db)
-    return await auth_service.verify_email(token) 
+    return await auth_service.verify_email(token)

@@ -15,7 +15,7 @@ class UserRepository:
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
-    async def get_by_verification_token(self, token: str) -> Optional[User]:
+    async def get_by_email_verification_token(self, token: str) -> Optional[User]:
         query = select(User).filter(User.verification_token == token)
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
