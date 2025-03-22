@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from typing import List, Optional
 from datetime import timedelta
 
-from src.models.contact import Contact
+from src.models.base import Contact
 from src.schemas.contact import ContactCreate, ContactUpdate
 from src.exceptions.contact import ContactAlreadyExists
 
@@ -13,16 +13,18 @@ class ContactsRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create_contact(self, contact: ContactCreate) -> Contact:
+    async def create_contact(self, contact: ContactCreate, user_id: int) -> Contact:
         existing_contact = await self.db.execute(
-            select(Contact).where(Contact.email == contact.email)
+            select(Contact).where(
+                and_(Contact.email == contact.email, Contact.user_id == user_id)
+            )
         )
         if existing_contact.scalar_one_or_none():
             raise ContactAlreadyExists(
                 f"Contact with email {contact.email} already exists"
             )
 
-        db_contact = Contact(**contact.model_dump())
+        db_contact = Contact(**contact.model_dump(), user_id=user_id)
         self.db.add(db_contact)
         await self.db.commit()
         await self.db.refresh(db_contact)
@@ -35,8 +37,9 @@ class ContactsRepository:
         first_name: Optional[str],
         last_name: Optional[str],
         email: Optional[str],
+        user_id: int,
     ) -> List[Contact]:
-        query = select(Contact)
+        query = select(Contact).where(Contact.user_id == user_id)
 
         # Apply filters if provided
         if first_name or last_name or email:
@@ -48,7 +51,7 @@ class ContactsRepository:
             if email:
                 filters.append(Contact.email.ilike(f"%{email}%"))
 
-            query = query.where(or_(*filters))
+            query = query.where(and_(or_(*filters), Contact.user_id == user_id))
 
         query = query.offset(skip).limit(limit)
         result = await self.db.execute(query)

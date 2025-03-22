@@ -7,7 +7,7 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from src.models.contact import Base
+from src.models.base import Base
 from src.database.config import config as app_config
 
 from logging.config import fileConfig

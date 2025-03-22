@@ -8,3 +8,8 @@ postgres-data
 **/*.pyz
 **/*.pywz
 **/*.pyzw
+
+# Environment variables
+*.env
+.env.*
+!.env.example
