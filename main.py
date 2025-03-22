@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Request, File, UploadFile
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from slowapi.errors import RateLimitExceeded
@@ -9,6 +10,16 @@ from src.database.db import get_db
 
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:8000",  # FastAPI default port
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.exception_handler(RateLimitExceeded)

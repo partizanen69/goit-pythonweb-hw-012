@@ -18,7 +18,6 @@ class EmailService:
     )
 
     def __init__(self):
-        print(self.config)
         self.fast_mail = FastMail(self.config)
 
     async def send_verification_email(self, email: str, username: str, token: str):
