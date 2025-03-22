@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import timedelta
 import uuid
 
+from src.models.base import User
 from src.database.db import get_db
 from src.schemas.user import UserCreate, UserLogin, UserResponse, TokenResponse
 from src.services.auth import AuthService
@@ -49,3 +52,19 @@ async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
 async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
     auth_service = AuthService(db)
     return await auth_service.verify_email(token)
+
+
+def get_user_identifier(request: Request) -> str:
+    user: User | None = getattr(request.state, "current_user", None)
+    return str(user.id) if user else get_remote_address(request)
+
+
+limiter = Limiter(key_func=get_user_identifier)
+
+
+@router.get("/me", response_model=UserResponse)
+@limiter.limit("5/minute")
+async def read_users_me(
+    request: Request, current_user=Depends(AuthService.get_current_user)
+) -> User:
+    return current_user

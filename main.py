@@ -1,12 +1,23 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Request, File, UploadFile
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from slowapi.errors import RateLimitExceeded
 
 from src.routes import auth, contacts
 from src.database.db import get_db
 
 
 app = FastAPI()
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        content={"error": "Rate limit exceeded. Please try again later."},
+    )
+
 
 api_prefix = "/api"
 app.include_router(contacts.router, prefix=api_prefix)
