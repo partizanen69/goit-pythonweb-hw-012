@@ -9,6 +9,8 @@ postgres-data
 **/*.pywz
 **/*.pyzw
 
+.vscode
+
 # Environment variables
 *.env
 .env.*
