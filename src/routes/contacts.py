@@ -1,3 +1,9 @@
+"""Contact management routes for the Contacts API.
+
+This module provides endpoints for creating, reading, updating, and deleting contacts,
+as well as retrieving upcoming birthdays.
+"""
+
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
@@ -19,6 +25,16 @@ async def create_contact(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_user)
 ) -> ContactResponse:
+    """Create a new contact.
+
+    Args:
+        contact (ContactCreate): Contact data to create
+        db (AsyncSession): Database session
+        current_user (User): Current authenticated user
+
+    Returns:
+        ContactResponse: Created contact data
+    """
     service = ContactsService(db)
     return await service.create_contact(contact, current_user.id)
 
@@ -33,6 +49,20 @@ async def get_contacts(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_user)
 ) -> List[ContactResponse]:
+    """Get a list of contacts with optional filtering.
+
+    Args:
+        skip (int): Number of records to skip
+        limit (int): Maximum number of records to return
+        first_name (Optional[str]): Filter by first name
+        last_name (Optional[str]): Filter by last name
+        email (Optional[str]): Filter by email
+        db (AsyncSession): Database session
+        current_user (User): Current authenticated user
+
+    Returns:
+        List[ContactResponse]: List of contacts matching the criteria
+    """
     service = ContactsService(db)
     return await service.get_contacts(skip, limit, first_name, last_name, email, current_user.id)
 
@@ -42,6 +72,15 @@ async def get_upcoming_birthdays(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_user)
 ) -> List[ContactResponse]:
+    """Get a list of contacts with upcoming birthdays.
+
+    Args:
+        db (AsyncSession): Database session
+        current_user (User): Current authenticated user
+
+    Returns:
+        List[ContactResponse]: List of contacts with upcoming birthdays
+    """
     service = ContactsService(db)
     return await service.get_upcoming_birthdays(current_user.id)
 
@@ -52,6 +91,19 @@ async def get_contact(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_user)
 ) -> ContactResponse:
+    """Get a specific contact by ID.
+
+    Args:
+        contact_id (int): ID of the contact to retrieve
+        db (AsyncSession): Database session
+        current_user (User): Current authenticated user
+
+    Returns:
+        ContactResponse: Contact data
+
+    Raises:
+        HTTPException: If contact is not found
+    """
     service = ContactsService(db)
     contact = await service.get_contact(contact_id, current_user.id)
     if contact is None:
@@ -69,6 +121,20 @@ async def update_contact(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_user)
 ) -> ContactResponse:
+    """Update a specific contact.
+
+    Args:
+        contact_id (int): ID of the contact to update
+        contact (ContactUpdate): Updated contact data
+        db (AsyncSession): Database session
+        current_user (User): Current authenticated user
+
+    Returns:
+        ContactResponse: Updated contact data
+
+    Raises:
+        HTTPException: If contact is not found
+    """
     service = ContactsService(db)
     existing_contact = await service.get_contact(contact_id, current_user.id)
     if existing_contact is None:
@@ -85,6 +151,16 @@ async def delete_contact(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_user)
 ) -> None:
+    """Delete a specific contact.
+
+    Args:
+        contact_id (int): ID of the contact to delete
+        db (AsyncSession): Database session
+        current_user (User): Current authenticated user
+
+    Raises:
+        HTTPException: If contact is not found
+    """
     service = ContactsService(db)
     contact = await service.get_contact(contact_id, current_user.id)
     if contact is None:

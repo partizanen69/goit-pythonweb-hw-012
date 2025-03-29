@@ -1,9 +1,20 @@
+"""Email service for the Contacts API.
+
+This module provides functionality for sending emails, including email verification.
+"""
+
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from src.conf.config import settings
 from pathlib import Path
 
 
 class EmailService:
+    """Service for sending emails.
+
+    This class provides methods for sending various types of emails,
+    including email verification.
+    """
+
     config = ConnectionConfig(
         MAIL_USERNAME=settings.MAIL_USERNAME,
         MAIL_PASSWORD=settings.MAIL_PASSWORD,
@@ -18,9 +29,17 @@ class EmailService:
     )
 
     def __init__(self):
+        """Initialize the email service with FastMail configuration."""
         self.fast_mail = FastMail(self.config)
 
     async def send_verification_email(self, email: str, username: str, token: str):
+        """Send an email verification link to a user.
+
+        Args:
+            email (str): User's email address
+            username (str): User's display name
+            token (str): Email verification token
+        """
         message = MessageSchema(
             subject="Verify your email",
             recipients=[email],

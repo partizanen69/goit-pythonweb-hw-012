@@ -1,3 +1,8 @@
+"""User management routes for the Contacts API.
+
+This module provides endpoints for managing user profiles and avatars.
+"""
+
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,5 +21,18 @@ async def update_avatar(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_user),
 ) -> User:
+    """Update user's avatar image.
+
+    Args:
+        file (UploadFile): Image file to upload
+        db (AsyncSession): Database session
+        current_user (User): Current authenticated user
+
+    Returns:
+        User: Updated user data with new avatar URL
+
+    Raises:
+        HTTPException: If file upload fails or file type is not supported
+    """
     user_service = UserService(db)
     return await user_service.update_avatar(current_user, file)

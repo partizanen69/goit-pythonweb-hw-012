@@ -1,3 +1,9 @@
+"""Authentication routes for the Contacts API.
+
+This module provides endpoints for user registration, login, email verification,
+and user profile access.
+"""
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from slowapi import Limiter
@@ -20,12 +26,36 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
     "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
 )
 async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
+    """Register a new user.
+
+    Args:
+        user (UserCreate): User registration data
+        db (AsyncSession): Database session
+
+    Returns:
+        UserResponse: Created user data
+
+    Raises:
+        HTTPException: If user with this email already exists
+    """
     auth_service = AuthService(db)
     return await auth_service.register(user)
 
 
 @router.post("/login", response_model=TokenResponse)
 async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
+    """Authenticate user and return access token.
+
+    Args:
+        user_data (UserLogin): User login credentials
+        db (AsyncSession): Database session
+
+    Returns:
+        TokenResponse: Access token and token type
+
+    Raises:
+        HTTPException: If credentials are invalid or email is not verified
+    """
     auth_service = AuthService(db)
     user = await auth_service.authenticate_user(user_data.email, user_data.password)
     if not user:
@@ -50,11 +80,31 @@ async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
 
 @router.get("/verify/{token}")
 async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
+    """Verify user's email address.
+
+    Args:
+        token (str): Email verification token
+        db (AsyncSession): Database session
+
+    Returns:
+        dict: Verification status message
+
+    Raises:
+        HTTPException: If token is invalid or expired
+    """
     auth_service = AuthService(db)
     return await auth_service.verify_email(token)
 
 
 def get_user_identifier(request: Request) -> str:
+    """Get user identifier for rate limiting.
+
+    Args:
+        request (Request): FastAPI request object
+
+    Returns:
+        str: User ID if authenticated, otherwise remote address
+    """
     user: User | None = getattr(request.state, "current_user", None)
     return str(user.id) if user else get_remote_address(request)
 
@@ -67,4 +117,16 @@ limiter = Limiter(key_func=get_user_identifier)
 async def read_users_me(
     request: Request, current_user=Depends(AuthService.get_current_user)
 ) -> User:
+    """Get current user's profile.
+
+    Args:
+        request (Request): FastAPI request object
+        current_user (User): Current authenticated user
+
+    Returns:
+        User: Current user's profile data
+
+    Raises:
+        HTTPException: If user is not authenticated
+    """
     return current_user

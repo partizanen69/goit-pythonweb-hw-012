@@ -1,3 +1,8 @@
+"""Database models for the Contacts API.
+
+This module defines the SQLAlchemy models for users and contacts.
+"""
+
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import Integer, String, Date, Text, ForeignKey, Boolean, DateTime, func
@@ -5,10 +10,24 @@ from sqlalchemy.orm import relationship
 
 
 class Base(DeclarativeBase):
+    """Base class for all database models."""
     pass
 
 
 class Contact(Base):
+    """Model representing a contact in the system.
+
+    Attributes:
+        id (int): Primary key
+        first_name (str): Contact's first name
+        last_name (str): Contact's last name
+        email (str): Contact's email address
+        phone (str): Contact's phone number
+        birthday (Date): Contact's date of birth
+        additional_data (str | None): Additional information about the contact
+        user_id (int): Foreign key to the user who owns this contact
+        user (User): Relationship to the user who owns this contact
+    """
     __tablename__ = "contacts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -27,6 +46,19 @@ class Contact(Base):
 
 
 class User(Base):
+    """Model representing a user in the system.
+
+    Attributes:
+        id (int): Primary key
+        username (str): User's display name
+        email (str): User's email address
+        password (str): Hashed password
+        created_at (DateTime): Timestamp of user creation
+        updated_at (DateTime): Timestamp of last update
+        email_verified (bool): Whether the email has been verified
+        verification_token (str | None): Token for email verification
+        avatar_url (str | None): URL to user's avatar image
+    """
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

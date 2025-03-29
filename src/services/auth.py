@@ -1,3 +1,9 @@
+"""Authentication service for the Contacts API.
+
+This module provides authentication-related functionality including user registration,
+login, email verification, and JWT token management.
+"""
+
 from typing import Optional
 from datetime import UTC, datetime, timedelta
 from fastapi import Depends, HTTPException, status
@@ -19,11 +25,33 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
 class AuthService:
+    """Service for handling user authentication and authorization.
+
+    This class provides methods for user registration, authentication,
+    email verification, and JWT token management.
+    """
+
     def __init__(self, db: AsyncSession):
+        """Initialize the authentication service.
+
+        Args:
+            db (AsyncSession): Database session
+        """
         self.repository = UserRepository(db)
         self.email_service = EmailService()
 
     async def register(self, user_data: UserCreate) -> User:
+        """Register a new user.
+
+        Args:
+            user_data (UserCreate): User registration data
+
+        Returns:
+            User: Created user object
+
+        Raises:
+            HTTPException: If email is already registered
+        """
         # Check if user exists
         existing_user = await self.repository.get_by_email(user_data.email)
         if existing_user:
@@ -52,6 +80,15 @@ class AuthService:
         return new_user
 
     async def authenticate_user(self, email: str, password: str) -> Optional[User]:
+        """Authenticate a user by email and password.
+
+        Args:
+            email (str): User's email address
+            password (str): User's password
+
+        Returns:
+            Optional[User]: User object if authentication successful, None otherwise
+        """
         user = await self.repository.get_by_email(email)
         if not user:
             return None
@@ -60,6 +97,17 @@ class AuthService:
         return user
 
     async def verify_email(self, token: str):
+        """Verify a user's email address.
+
+        Args:
+            token (str): Email verification token
+
+        Returns:
+            dict: Success message
+
+        Raises:
+            HTTPException: If token is invalid or email already verified
+        """
         user = await self.repository.get_by_email_verification_token(token)
 
         if not user:
@@ -82,6 +130,15 @@ class AuthService:
     def create_access_token(
         self, user_email: str, expires_delta: Optional[timedelta] = None
     ) -> str:
+        """Create a JWT access token.
+
+        Args:
+            user_email (str): User's email address
+            expires_delta (Optional[timedelta]): Token expiration time
+
+        Returns:
+            str: JWT access token
+        """
         to_encode: dict[str, str | float] = {"sub": user_email}
 
         if expires_delta:
@@ -100,6 +157,18 @@ class AuthService:
     async def get_current_user(
         token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)
     ) -> User:
+        """Get the current authenticated user from a JWT token.
+
+        Args:
+            token (str): JWT access token
+            db (AsyncSession): Database session
+
+        Returns:
+            User: Current authenticated user
+
+        Raises:
+            HTTPException: If token is invalid or user not found
+        """
         credentials_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
