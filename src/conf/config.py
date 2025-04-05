@@ -30,7 +30,12 @@ class Settings(BaseSettings):
         CLOUDINARY_NAME (str): Cloudinary cloud name
         CLOUDINARY_API_KEY (str): Cloudinary API key
         CLOUDINARY_API_SECRET (str): Cloudinary API secret
+        REDIS_HOST (str): Redis server hostname
+        REDIS_PORT (int): Redis server port
+        REDIS_PASSWORD (str): Redis password
+        REDIS_USER_CACHE_TTL (int): TTL for cached user data in seconds
     """
+
     # database
     DB_URL: str = os.getenv("DATABASE_URL", "")
     # jwt
@@ -48,6 +53,12 @@ class Settings(BaseSettings):
     CLOUDINARY_NAME: str = os.getenv("CLOUDINARY_NAME", "")
     CLOUDINARY_API_KEY: str = os.getenv("CLOUDINARY_API_KEY", "")
     CLOUDINARY_API_SECRET: str = os.getenv("CLOUDINARY_API_SECRET", "")
+
+    # Redis settings
+    REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
+    REDIS_PORT: int = int(os.getenv("REDIS_PORT", "6379"))
+    REDIS_PASSWORD: str = os.getenv("REDIS_PASSWORD", "")
+    REDIS_USER_CACHE_TTL: int = int(os.getenv("REDIS_USER_CACHE_TTL", "3600"))  # 1 hour
 
 
 settings = Settings()

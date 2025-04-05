@@ -6,6 +6,7 @@ This module provides functionality for managing user profiles and avatars.
 from fastapi import UploadFile, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.services.auth import AuthService
 from src.repository.user_repository import UserRepository
 from src.services.cloud_image import CloudImage
 from src.models.base import User
@@ -49,4 +50,6 @@ class UserService:
 
         result = await CloudImage.upload(content, public_id=public_id)
 
-        return await self.repository.update_avatar(user, result["secure_url"])
+        updated_user = await self.repository.update_avatar(user, result["secure_url"])
+        await AuthService.invalidate_user_cache(user.email)
+        return updated_user

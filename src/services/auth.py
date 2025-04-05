@@ -18,6 +18,7 @@ from src.models.base import User
 from src.schemas.user import UserCreate
 from src.conf.config import settings
 from src.services.email import EmailService
+from src.services.redis_service import RedisService
 from src.repository.user_repository import UserRepository
 
 
@@ -96,6 +97,11 @@ class AuthService:
             return None
         if not self.verify_password(password, user.password):
             return None
+
+        # Cache the user after successful authentication
+        cache_key = f"user:{user.email}"
+        await RedisService.set(cache_key, user)
+
         return user
 
     async def verify_email(self, token: str):
@@ -126,6 +132,11 @@ class AuthService:
         user.email_verified = True
         user.verification_token = None
         await self.repository.update(user)
+        await AuthService.invalidate_user_cache(user.email)
+
+        # Update user in cache if exists
+        cache_key = f"user:{user.email}"
+        await RedisService.set(cache_key, user)
 
         return {"message": "Email verified successfully"}
 
@@ -187,13 +198,39 @@ class AuthService:
         except JWTError:
             raise credentials_exception
 
+        # Try to get user from Redis cache first
+        cache_key = f"user:{email}"
+        cached_user = await RedisService.get(cache_key)
+
+        if cached_user:
+            return cached_user
+
+        # If not in cache, get from database
         repository = UserRepository(db)
         user = await repository.get_by_email(email)
 
         if user is None:
             raise credentials_exception
 
+        # Cache the user for future requests
+        await RedisService.set(cache_key, user)
+
         return user
+
+    @staticmethod
+    async def invalidate_user_cache(email: str) -> bool:
+        """Invalidate a user's cache entry.
+
+        This method should be called whenever a user's data is modified.
+
+        Args:
+            email (str): User's email address
+
+        Returns:
+            bool: True if cache was invalidated, False otherwise
+        """
+        cache_key = f"user:{email}"
+        return await RedisService.delete(cache_key)
 
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:

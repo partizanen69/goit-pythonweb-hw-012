@@ -5,6 +5,7 @@ middleware, and configurations.
 """
 
 from fastapi import FastAPI, Depends, HTTPException, status, Request, File, UploadFile
+from fastapi.concurrency import asynccontextmanager
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -13,12 +14,13 @@ from slowapi.errors import RateLimitExceeded
 
 from src.routes import auth, contacts, users
 from src.database.db import get_db
+from src.services.redis_service import RedisService
 
 
 app = FastAPI(
     title="Contacts API",
     description="A FastAPI application for managing contacts with user authentication",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 app.add_middleware(
@@ -88,14 +90,39 @@ async def healthchecker(db: AsyncSession = Depends(get_db)):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Database is not configured correctly",
             )
+
+        # Check Redis connection
+        await RedisService.set("health_check", "ok")
+        redis_result = await RedisService.get("health_check")
+        if redis_result != "ok":
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Redis is not configured correctly",
+            )
+
         return {"message": "Welcome to FastAPI!"}
     except Exception as e:
-        err_text = "Unexpected error during healthcheck call to the database"
+        err_text = "Unexpected error during healthcheck call to the database or Redis"
         print(f"{err_text}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=err_text,
         )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle application startup and shutdown events."""
+    # Startup: Redis connection is created on demand
+    yield
+    # Shutdown: Close Redis connection
+    try:
+        await RedisService.close()
+    except Exception as e:
+        print(f"Error closing Redis connection: {e}")
+
+
+app.router.lifespan_context = lifespan
 
 
 if __name__ == "__main__":
