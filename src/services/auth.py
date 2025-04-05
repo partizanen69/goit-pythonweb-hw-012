@@ -11,17 +11,19 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import JWTError, jwt
 import uuid
+from passlib.context import CryptContext
 
 from src.database.db import get_db
 from src.models.base import User
 from src.schemas.user import UserCreate
 from src.conf.config import settings
-from src.utils.auth import verify_password, get_password_hash
 from src.services.email import EmailService
 from src.repository.user_repository import UserRepository
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class AuthService:
@@ -60,7 +62,7 @@ class AuthService:
             )
 
         # Create new user
-        hashed_password = get_password_hash(user_data.password)
+        hashed_password = self.get_password_hash(user_data.password)
         email_verification_token = str(uuid.uuid4())
 
         new_user = await self.repository.create(
@@ -92,7 +94,7 @@ class AuthService:
         user = await self.repository.get_by_email(email)
         if not user:
             return None
-        if not verify_password(password, user.password):
+        if not self.verify_password(password, user.password):
             return None
         return user
 
@@ -192,3 +194,28 @@ class AuthService:
             raise credentials_exception
 
         return user
+
+    @staticmethod
+    def verify_password(plain_password: str, hashed_password: str) -> bool:
+        """Verify a password against its hash.
+
+        Args:
+            plain_password (str): Plain text password to verify
+            hashed_password (str): Hashed password to verify against
+
+        Returns:
+            bool: True if password matches hash, False otherwise
+        """
+        return pwd_context.verify(plain_password, hashed_password)
+
+    @staticmethod
+    def get_password_hash(password: str) -> str:
+        """Generate a hash from a password.
+
+        Args:
+            password (str): Password to hash
+
+        Returns:
+            str: Hashed password
+        """
+        return pwd_context.hash(password)

@@ -17,4 +17,8 @@ alembic upgrade head
 # run app
 docker compose up
 python main.py
+
+# run tests
+PYTHONPATH=$PYTHONPATH:. pytest tests/
+PYTHONPATH=$PYTHONPATH:. pytest tests/ --cov=src --cov-report=term
 ```

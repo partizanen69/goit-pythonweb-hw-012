@@ -99,7 +99,7 @@ class ContactsRepository:
         result = await self.db.execute(query)
         return result.scalars().all()
 
-    async def get_contact(self, contact_id: int) -> Optional[Contact]:
+    async def get_contact(self, contact_id: int, user_id: int) -> Optional[Contact]:
         """Get a specific contact by ID.
 
         Args:
@@ -108,10 +108,16 @@ class ContactsRepository:
         Returns:
             Optional[Contact]: Contact object if found, None otherwise
         """
-        result = await self.db.execute(select(Contact).filter(Contact.id == contact_id))
+        result = await self.db.execute(
+            select(Contact).filter(
+                and_(Contact.id == contact_id, Contact.user_id == user_id)
+            )
+        )
         return result.scalar_one_or_none()
 
-    async def update_contact(self, contact_id: int, contact: ContactUpdate) -> Contact:
+    async def update_contact(
+        self, contact_id: int, contact: ContactUpdate, user_id: int
+    ) -> Contact:
         """Update a specific contact.
 
         Args:
@@ -121,7 +127,7 @@ class ContactsRepository:
         Returns:
             Contact: Updated contact object
         """
-        db_contact = await self.get_contact(contact_id)
+        db_contact = await self.get_contact(contact_id, user_id)
 
         # Update only the provided fields
         update_data = contact.model_dump(exclude_unset=True)
@@ -132,28 +138,65 @@ class ContactsRepository:
         await self.db.refresh(db_contact)
         return db_contact
 
-    async def delete_contact(self, contact_id: int) -> None:
+    async def delete_contact(self, contact_id: int, user_id: int) -> None:
         """Delete a specific contact.
 
         Args:
             contact_id (int): ID of the contact to delete
         """
-        db_contact = await self.get_contact(contact_id)
+        db_contact = await self.get_contact(contact_id, user_id)
         await self.db.delete(db_contact)
         await self.db.commit()
 
-    async def get_upcoming_birthdays(self) -> List[Contact]:
+    async def get_upcoming_birthdays(self, user_id: int) -> List[Contact]:
         """Get a list of contacts with birthdays in the next 7 days.
+
+        Args:
+            user_id (int): ID of the user whose contacts to retrieve
 
         Returns:
             List[Contact]: List of contacts with upcoming birthdays
         """
-        query = select(Contact).where(
-            and_(
-                Contact.birthday >= func.current_date(),
-                Contact.birthday <= func.current_date() + timedelta(days=7),
+        # Get current month and day
+        current_date = func.current_date()
+        current_month = extract("month", current_date)
+        current_day = extract("day", current_date)
+
+        # Calculate month and day 7 days from now
+        seven_days_later = current_date + timedelta(days=7)
+        end_month = extract("month", seven_days_later)
+        end_day = extract("day", seven_days_later)
+
+        # Query for contacts with birthdays in the next 7 days, ignoring year
+        if current_month == end_month:
+            # Simple case: both dates in same month
+            query = select(Contact).where(
+                and_(
+                    Contact.user_id == user_id,
+                    extract("month", Contact.birthday) == current_month,
+                    extract("day", Contact.birthday) >= current_day,
+                    extract("day", Contact.birthday) <= end_day,
+                )
             )
-        )
+        else:
+            # Handles December to January transition
+            query = select(Contact).where(
+                and_(
+                    Contact.user_id == user_id,
+                    or_(
+                        # Either current month with day >= current day
+                        and_(
+                            extract("month", Contact.birthday) == current_month,
+                            extract("day", Contact.birthday) >= current_day,
+                        ),
+                        # Or next month with day <= end day
+                        and_(
+                            extract("month", Contact.birthday) == end_month,
+                            extract("day", Contact.birthday) <= end_day,
+                        ),
+                    ),
+                )
+            )
 
         result = await self.db.execute(query)
         return result.scalars().all()
