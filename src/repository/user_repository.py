@@ -8,8 +8,7 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from src.models.base import User
-from src.schemas.user import UserCreate
+from src.models.base import User, UserRole
 
 
 class UserRepository:
@@ -122,6 +121,21 @@ class UserRepository:
         user.password = hashed_password
         user.reset_password_token = None
         user.reset_token_expires = None
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+
+    async def update_role(self, user: User, role: UserRole) -> User:
+        """Update a user's role.
+
+        Args:
+            user (User): User to update
+            role (UserRole): New role for the user
+
+        Returns:
+            User: Updated user object
+        """
+        user.role = role
         await self.db.commit()
         await self.db.refresh(user)
         return user

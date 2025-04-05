@@ -7,6 +7,8 @@ from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 from typing import Optional
 
+from src.models.base import UserRole
+
 
 # ... means required
 class UserCreate(BaseModel):
@@ -33,6 +35,7 @@ class UserResponse(BaseModel):
         email_verified (bool): Whether the email has been verified
         created_at (datetime): User creation timestamp
         avatar_url (Optional[str]): URL to user's avatar image
+        role (str): User's role in the system
     """
 
     id: int
@@ -41,6 +44,7 @@ class UserResponse(BaseModel):
     email_verified: bool
     created_at: datetime
     avatar_url: Optional[str] = None
+    role: UserRole
 
     class Config:
         from_attributes = True

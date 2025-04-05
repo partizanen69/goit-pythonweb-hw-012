@@ -14,7 +14,7 @@ import uuid
 from passlib.context import CryptContext
 
 from src.database.db import get_db
-from src.models.base import User
+from src.models.base import User, UserRole
 from src.schemas.user import UserCreate
 from src.conf.config import settings
 from src.services.email import EmailService
@@ -72,6 +72,7 @@ class AuthService:
                 "email": user_data.email,
                 "password": hashed_password,
                 "verification_token": email_verification_token,
+                "role": UserRole.USER,  # Default role is USER
             }
         )
 

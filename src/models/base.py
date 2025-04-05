@@ -10,6 +10,12 @@ from sqlalchemy import Integer, String, Date, Text, ForeignKey, Boolean, DateTim
 from sqlalchemy.orm import relationship
 
 
+class UserRole(str, Enum):
+    USER = "USER"
+    MODERATOR = "MODERATOR"
+    ADMIN = "ADMIN"
+
+
 class Base(DeclarativeBase):
     """Base class for all database models."""
 
@@ -63,6 +69,7 @@ class User(Base):
         avatar_url (str | None): URL to user's avatar image
         reset_password_token (str | None): Token for password reset
         reset_token_expires (DateTime | None): Expiration time for reset token
+        role (UserRole): User's role in the system
     """
 
     __tablename__ = "users"
@@ -84,9 +91,6 @@ class User(Base):
     reset_token_expires: Mapped[DateTime | None] = mapped_column(
         DateTime, nullable=True
     )
-
-
-class UserRole(str, Enum):
-    USER = "USER"
-    MODERATOR = "MODERATOR"
-    ADMIN = "ADMIN"
+    role: Mapped[UserRole] = mapped_column(
+        String(50), default=UserRole.USER, nullable=False
+    )
