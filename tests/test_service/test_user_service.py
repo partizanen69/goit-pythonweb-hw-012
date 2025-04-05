@@ -4,7 +4,7 @@ from fastapi import UploadFile, HTTPException
 
 from src.services.user import UserService
 from src.repository.user_repository import UserRepository
-from src.models.base import User
+from src.models.base import User, UserRole
 from src.services.cloud_image import CloudImage
 
 
@@ -28,6 +28,7 @@ def test_user() -> User:
         email="test@example.com",
         password="hashed_password",
         avatar_url="http://example.com/old_avatar.jpg",
+        role=UserRole.ADMIN,
     )
 
 

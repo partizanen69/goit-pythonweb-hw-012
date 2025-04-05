@@ -279,20 +279,43 @@ class AuthService:
 
         # Try to get user from Redis cache first
         cache_key = f"user:{email}"
-        cached_user = await RedisService.get(cache_key)
+        cached_user_info = await RedisService.get(cache_key)
 
-        if cached_user:
-            return cached_user
+        if (
+            cached_user_info
+            and isinstance(cached_user_info, dict)
+            and "id" in cached_user_info
+        ):
+            try:
+                user = User(
+                    id=cached_user_info.get("id"),
+                    username=cached_user_info.get("username"),
+                    email=email,
+                    password="",
+                    role=cached_user_info.get("role"),
+                    email_verified=cached_user_info.get("email_verified", False),
+                    avatar_url=cached_user_info.get("avatar_url"),
+                )
+                await db.refresh(user)
+                return user
+            except Exception:
+                pass
 
-        # If not in cache, get from database
         repository = UserRepository(db)
         user = await repository.get_by_email(email)
 
         if user is None:
             raise credentials_exception
 
-        # Cache the user for future requests
-        await RedisService.set(cache_key, user)
+        # Cache user info for future requests - only cache what's needed
+        user_info = {
+            "id": user.id,
+            "username": user.username,
+            "role": user.role,
+            "email_verified": user.email_verified,
+            "avatar_url": user.avatar_url,
+        }
+        await RedisService.set(cache_key, user_info)
 
         return user
 
@@ -308,7 +331,7 @@ class AuthService:
         Returns:
             bool: True if cache was invalidated, False otherwise
         """
-        cache_key = f"user:{email}"
+        cache_key = f"user_info:{email}"
         return await RedisService.delete(cache_key)
 
     @staticmethod

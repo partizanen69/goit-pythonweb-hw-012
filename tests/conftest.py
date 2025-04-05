@@ -1,5 +1,6 @@
 import asyncio
-from typing import Generator
+from typing import Generator, Any
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytest_asyncio
@@ -11,6 +12,7 @@ from main import app
 from src.models.base import Base, User, UserRole
 from src.database.db import get_db
 from src.services.auth import AuthService
+from src.services.redis_service import RedisService
 
 SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
@@ -31,6 +33,44 @@ test_user = {
 }
 
 
+# Mock Redis Service methods
+@pytest.fixture(scope="module", autouse=True)
+def mock_redis_service():
+    """Mock Redis service for tests."""
+    # Create a cache to simulate Redis storage
+    redis_cache = {}
+
+    # Create mock implementations
+    async def mock_get(key: str) -> Any:
+        return redis_cache.get(key)
+
+    async def mock_set(key: str, value: Any, ttl: int = None) -> bool:
+        redis_cache[key] = value
+        return True
+
+    async def mock_delete(key: str) -> bool:
+        if key in redis_cache:
+            del redis_cache[key]
+            return True
+        return False
+
+    async def mock_close():
+        redis_cache.clear()
+        return True
+
+    # Apply patches
+    with patch.object(
+        RedisService, "get", new=AsyncMock(side_effect=mock_get)
+    ), patch.object(
+        RedisService, "set", new=AsyncMock(side_effect=mock_set)
+    ), patch.object(
+        RedisService, "delete", new=AsyncMock(side_effect=mock_delete)
+    ), patch.object(
+        RedisService, "close", new=AsyncMock(side_effect=mock_close)
+    ):
+        yield
+
+
 @pytest.fixture(scope="module", autouse=True)
 def init_models_wrap():
     async def init_models():
@@ -46,7 +86,7 @@ def init_models_wrap():
                 password=hash_password,
                 email_verified=True,
                 avatar_url="https://twitter.com/gravatar",
-                # role=UserRole.ADMIN,
+                role=UserRole.ADMIN,  # Set test user as admin
             )
             session.add(current_user)
             await session.commit()

@@ -1,5 +1,5 @@
 from unittest.mock import AsyncMock
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 from sqlalchemy import select
@@ -155,7 +155,9 @@ async def test_request_password_reset(client, monkeypatch):
         reset_token = db_user.reset_password_token
         assert reset_token is not None
         assert db_user.reset_token_expires is not None
-        assert db_user.reset_token_expires > datetime.now(UTC)
+        assert db_user.reset_token_expires > datetime.now(timezone.utc).replace(
+            tzinfo=None
+        )
 
     return reset_token
 
