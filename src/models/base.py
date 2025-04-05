@@ -12,6 +12,7 @@ from sqlalchemy.orm import relationship
 
 class Base(DeclarativeBase):
     """Base class for all database models."""
+
     pass
 
 
@@ -29,6 +30,7 @@ class Contact(Base):
         user_id (int): Foreign key to the user who owns this contact
         user (User): Relationship to the user who owns this contact
     """
+
     __tablename__ = "contacts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -59,7 +61,10 @@ class User(Base):
         email_verified (bool): Whether the email has been verified
         verification_token (str | None): Token for email verification
         avatar_url (str | None): URL to user's avatar image
+        reset_password_token (str | None): Token for password reset
+        reset_token_expires (DateTime | None): Expiration time for reset token
     """
+
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -75,6 +80,11 @@ class User(Base):
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     verification_token: Mapped[str | None] = mapped_column(String(255), nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    reset_password_token: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    reset_token_expires: Mapped[DateTime | None] = mapped_column(
+        DateTime, nullable=True
+    )
+
 
 class UserRole(str, Enum):
     USER = "USER"

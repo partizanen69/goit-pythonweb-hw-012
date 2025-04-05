@@ -5,7 +5,7 @@ login, email verification, and JWT token management.
 """
 
 from typing import Optional
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -139,6 +139,84 @@ class AuthService:
         await RedisService.set(cache_key, user)
 
         return {"message": "Email verified successfully"}
+
+    async def request_password_reset(self, email: str):
+        """Request a password reset.
+
+        Args:
+            email (str): Email address to reset password for
+
+        Returns:
+            dict: Success message
+
+        Raises:
+            HTTPException: If user not found
+        """
+        user = await self.repository.get_by_email(email)
+        if not user:
+            # Return success even if email doesn't exist to prevent user enumeration
+            return {
+                "message": "If your email is registered, you will receive a password reset link"
+            }
+
+        # Generate and store reset token
+        reset_token = str(uuid.uuid4())
+        user.reset_password_token = reset_token
+        user.reset_token_expires = (
+            datetime.now(timezone.utc) + timedelta(hours=24)
+        ).replace(tzinfo=None)
+        await self.repository.update(user)
+
+        # Invalidate user cache
+        await AuthService.invalidate_user_cache(user.email)
+
+        # Send reset email
+        await self.email_service.send_password_reset_email(
+            user.email, user.username, reset_token
+        )
+
+        return {
+            "message": "If your email is registered, you will receive a password reset link"
+        }
+
+    async def reset_password(self, token: str, new_password: str):
+        """Reset a user's password.
+
+        Args:
+            token (str): Password reset token
+            new_password (str): New password
+
+        Returns:
+            dict: Success message
+
+        Raises:
+            HTTPException: If token is invalid or expired
+        """
+        user = await self.repository.get_by_reset_password_token(token)
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Invalid reset token",
+            )
+
+        # Check if token has expired
+        if user.reset_token_expires and user.reset_token_expires < datetime.now(
+            timezone.utc
+        ).replace(tzinfo=None):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Reset token has expired",
+            )
+
+        # Update password
+        hashed_password = self.get_password_hash(new_password)
+        await self.repository.update_password(user, hashed_password)
+
+        # Invalidate user cache
+        await AuthService.invalidate_user_cache(user.email)
+
+        return {"message": "Password reset successfully"}
 
     def create_access_token(
         self, user_email: str, expires_delta: Optional[timedelta] = None

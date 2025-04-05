@@ -15,6 +15,7 @@ import uuid
 from src.models.base import User
 from src.database.db import get_db
 from src.schemas.user import UserCreate, UserLogin, UserResponse, TokenResponse
+from src.schemas.user import PasswordResetRequest, PasswordReset
 from src.services.auth import AuthService
 from src.conf.config import settings
 
@@ -94,6 +95,44 @@ async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
     """
     auth_service = AuthService(db)
     return await auth_service.verify_email(token)
+
+
+@router.post("/request-password-reset")
+async def request_password_reset(
+    request_data: PasswordResetRequest, db: AsyncSession = Depends(get_db)
+):
+    """Request a password reset.
+
+    Args:
+        request_data (PasswordResetRequest): Password reset request data
+        db (AsyncSession): Database session
+
+    Returns:
+        dict: Success message
+    """
+    auth_service = AuthService(db)
+    return await auth_service.request_password_reset(request_data.email)
+
+
+@router.post("/reset-password/{token}")
+async def reset_password(
+    token: str, password_data: PasswordReset, db: AsyncSession = Depends(get_db)
+):
+    """Reset a user's password.
+
+    Args:
+        token (str): Password reset token
+        password_data (PasswordReset): New password data
+        db (AsyncSession): Database session
+
+    Returns:
+        dict: Success message
+
+    Raises:
+        HTTPException: If token is invalid or expired
+    """
+    auth_service = AuthService(db)
+    return await auth_service.reset_password(token, password_data.password)
 
 
 def get_user_identifier(request: Request) -> str:

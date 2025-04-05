@@ -18,3 +18,4 @@ postgres-data
 
 .coverage
 test.db
+redis-data

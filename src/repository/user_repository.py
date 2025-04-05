@@ -53,6 +53,19 @@ class UserRepository:
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
+    async def get_by_reset_password_token(self, token: str) -> Optional[User]:
+        """Get a user by their password reset token.
+
+        Args:
+            token (str): Password reset token to search for
+
+        Returns:
+            Optional[User]: User object if found, None otherwise
+        """
+        query = select(User).filter(User.reset_password_token == token)
+        result = await self.db.execute(query)
+        return result.scalar_one_or_none()
+
     async def create(self, user_data: dict) -> User:
         """Create a new user in the database.
 
@@ -78,6 +91,7 @@ class UserRepository:
             User: Updated user object
         """
         await self.db.commit()
+        await self.db.refresh(user)
         return user
 
     async def update_avatar(self, user: User, avatar_url: str) -> User:
@@ -91,6 +105,23 @@ class UserRepository:
             User: Updated user object
         """
         user.avatar_url = avatar_url
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+
+    async def update_password(self, user: User, hashed_password: str) -> User:
+        """Update a user's password.
+
+        Args:
+            user (User): User to update
+            hashed_password (str): New hashed password
+
+        Returns:
+            User: Updated user object
+        """
+        user.password = hashed_password
+        user.reset_password_token = None
+        user.reset_token_expires = None
         await self.db.commit()
         await self.db.refresh(user)
         return user

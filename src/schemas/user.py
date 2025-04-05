@@ -17,6 +17,7 @@ class UserCreate(BaseModel):
         email (EmailStr): User's email address
         password (str): User's password (6-50 characters)
     """
+
     username: str = Field(..., min_length=3, max_length=50)
     email: EmailStr
     password: str = Field(..., min_length=6, max_length=50)
@@ -33,6 +34,7 @@ class UserResponse(BaseModel):
         created_at (datetime): User creation timestamp
         avatar_url (Optional[str]): URL to user's avatar image
     """
+
     id: int
     username: str
     email: str
@@ -51,8 +53,31 @@ class UserLogin(BaseModel):
         email (EmailStr): User's email address
         password (str): User's password
     """
+
     email: EmailStr
     password: str
+
+
+class PasswordResetRequest(BaseModel):
+    """Schema for requesting a password reset.
+
+    Attributes:
+        email (EmailStr): User's email address
+    """
+
+    email: EmailStr
+
+
+class PasswordReset(BaseModel):
+    """Schema for resetting a password.
+
+    Attributes:
+        token (str): Password reset token
+        password (str): New password (6-50 characters)
+    """
+
+    token: str
+    password: str = Field(..., min_length=6, max_length=50)
 
 
 class TokenResponse(BaseModel):
@@ -62,5 +87,6 @@ class TokenResponse(BaseModel):
         access_token (str): JWT access token
         token_type (str): Token type (always "bearer")
     """
+
     access_token: str
     token_type: str = "bearer"

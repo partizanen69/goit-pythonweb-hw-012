@@ -49,3 +49,23 @@ class EmailService:
         )
 
         await self.fast_mail.send_message(message)
+
+    async def send_password_reset_email(self, email: str, username: str, token: str):
+        """Send a password reset link to a user.
+
+        Args:
+            email (str): User's email address
+            username (str): User's display name
+            token (str): Password reset token
+        """
+        message = MessageSchema(
+            subject="Reset at contacts app",
+            recipients=[email],
+            body=f"Hi {username}, you requested to reset. "
+            f"Please click on this link to reset: "
+            f"http://localhost:8000/api/auth/reset-password/{token} "
+            f"If you didn't request this, please ignore this email.",
+            subtype=MessageType.html,
+        )
+
+        await self.fast_mail.send_message(message)
