@@ -28,7 +28,9 @@ class ContactsService:
         """
         self.repository = ContactsRepository(db)
 
-    async def create_contact(self, contact: ContactCreate, user_id: int) -> ContactResponse:
+    async def create_contact(
+        self, contact: ContactCreate, user_id: int
+    ) -> ContactResponse:
         """Create a new contact.
 
         Args:
@@ -81,7 +83,7 @@ class ContactsService:
         Returns:
             List[ContactResponse]: List of contacts with upcoming birthdays
         """
-        return await self.repository.get_upcoming_birthdays(user_id)
+        return await self.repository.get_upcoming_birthdays()
 
     async def get_contact(self, contact_id: int, user_id: int) -> ContactResponse:
         """Get a specific contact by ID.

@@ -148,7 +148,7 @@ class ContactsRepository:
         await self.db.delete(db_contact)
         await self.db.commit()
 
-    async def get_upcoming_birthdays(self, user_id: int) -> List[Contact]:
+    async def get_upcoming_birthdays(self) -> List[Contact]:
         """Get a list of contacts with birthdays in the next 7 days.
 
         Args:
@@ -172,7 +172,6 @@ class ContactsRepository:
             # Simple case: both dates in same month
             query = select(Contact).where(
                 and_(
-                    Contact.user_id == user_id,
                     extract("month", Contact.birthday) == current_month,
                     extract("day", Contact.birthday) >= current_day,
                     extract("day", Contact.birthday) <= end_day,
@@ -181,21 +180,18 @@ class ContactsRepository:
         else:
             # Handles December to January transition
             query = select(Contact).where(
-                and_(
-                    Contact.user_id == user_id,
-                    or_(
-                        # Either current month with day >= current day
-                        and_(
-                            extract("month", Contact.birthday) == current_month,
-                            extract("day", Contact.birthday) >= current_day,
-                        ),
-                        # Or next month with day <= end day
-                        and_(
-                            extract("month", Contact.birthday) == end_month,
-                            extract("day", Contact.birthday) <= end_day,
-                        ),
+                or_(
+                    # Either current month with day >= current day
+                    and_(
+                        extract("month", Contact.birthday) == current_month,
+                        extract("day", Contact.birthday) >= current_day,
                     ),
-                )
+                    # Or next month with day <= end day
+                    and_(
+                        extract("month", Contact.birthday) == end_month,
+                        extract("day", Contact.birthday) <= end_day,
+                    ),
+                ),
             )
 
         result = await self.db.execute(query)

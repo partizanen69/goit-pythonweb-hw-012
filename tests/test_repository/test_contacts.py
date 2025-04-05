@@ -173,7 +173,7 @@ async def test_get_contact(
     mock_session.execute.return_value = mock_result
 
     # Execute get_contact
-    result = await contacts_repository.get_contact(contact_id)
+    result = await contacts_repository.get_contact(contact_id, test_user.id)
 
     # Verify
     assert result is expected_contact
@@ -193,7 +193,7 @@ async def test_get_contact_not_found(
     mock_session.execute.return_value = mock_result
 
     # Execute get_contact
-    result = await contacts_repository.get_contact(contact_id)
+    result = await contacts_repository.get_contact(contact_id, test_user.id)
 
     # Verify
     assert result is None
@@ -223,10 +223,12 @@ async def test_update_contact(
     update_data = ContactUpdate(first_name="Jane", phone="9876543210")
 
     # Execute update_contact
-    result = await contacts_repository.update_contact(contact_id, update_data)
+    result = await contacts_repository.update_contact(
+        contact_id, update_data, test_user.id
+    )
 
     # Verify
-    contacts_repository.get_contact.assert_called_once_with(contact_id)
+    contacts_repository.get_contact.assert_called_once_with(contact_id, test_user.id)
     mock_session.commit.assert_called_once()
     mock_session.refresh.assert_called_once_with(existing_contact)
 
@@ -260,10 +262,10 @@ async def test_delete_contact(
     mock_session.delete = AsyncMock()
 
     # Execute delete_contact
-    await contacts_repository.delete_contact(contact_id)
+    await contacts_repository.delete_contact(contact_id, test_user.id)
 
     # Verify
-    contacts_repository.get_contact.assert_called_once_with(contact_id)
+    contacts_repository.get_contact.assert_called_once_with(contact_id, test_user.id)
     mock_session.delete.assert_called_once_with(existing_contact)
     mock_session.commit.assert_called_once()
 

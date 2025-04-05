@@ -146,9 +146,7 @@ async def test_get_upcoming_birthdays(
     result = await contacts_service.get_upcoming_birthdays(test_user.id)
 
     # Verify
-    contacts_service.repository.get_upcoming_birthdays.assert_called_once_with(
-        test_user.id
-    )
+    contacts_service.repository.get_upcoming_birthdays.assert_called_once()
     assert result == expected_contacts
 
 
